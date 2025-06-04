@@ -1,24 +1,33 @@
 from flask import Flask, request, jsonify
-import time
-import os
+from datetime import datetime
 
 app = Flask(__name__)
 
 @app.route('/ping', methods=['POST'])
 def ping():
-    slave_receive_time = int(time.time() * 1000)
+    client_ip = request.remote_addr
+    data = request.get_json()
 
-    data = request.json or {}
+    if not data:
+        return jsonify({'error': 'No JSON received'}), 400
+
+    client_id = data.get('client_id', client_ip)
     packet_id = data.get('packet_id')
     master_send_time = data.get('master_send_time')
 
-    # Возвращаем в ответе время приема пакета на сервере, без использования локального времени отправки
-    return jsonify({
+    # Время приёма сервером (slave time) в мс с UTC
+    slave_recv_time = int(datetime.utcnow().timestamp() * 1000)
+
+    response = {
+        'client_id': client_id,
         'packet_id': packet_id,
-        'master_send_time': master_send_time,
-        'slave_receive_time': slave_receive_time
-    })
+        'slave_recv_time': slave_recv_time,
+        'slave_send_time': slave_recv_time
+    }
+
+    print(f"Received from {client_id} (IP {client_ip}): packet #{packet_id} at slave_recv_time={slave_recv_time}")
+    return jsonify(response), 200
+
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=10000)
