@@ -1,13 +1,25 @@
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 import time
 import os
 
 app = Flask(__name__)
 
-@app.route('/ping')
+@app.route('/ping', methods=['POST'])
 def ping():
-    server_time = int(time.time() * 1000)
-    return jsonify({'serverTime': server_time})
+    slave_receive_time = int(time.time() * 1000)
+
+    data = request.json or {}
+    packet_id = data.get('packet_id')
+    master_send_time = data.get('master_send_time')
+
+    slave_send_time = int(time.time() * 1000)
+
+    return jsonify({
+        'packet_id': packet_id,
+        'master_send_time': master_send_time,
+        'slave_receive_time': slave_receive_time,
+        'slave_send_time': slave_send_time
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
